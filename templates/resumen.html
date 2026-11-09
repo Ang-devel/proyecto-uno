@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body class="bg-success-subtle">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-success border rounded-bottom-4 navbar-dark p-3">
+        <div class="container-fluid">
+
+            <img src="{{ url_for('static', filename='img/logoesc.png') }}" alt="logo escuela Rotario" style="height: 50px; width: auto;">
+            <a class="navbar-brand h3 mb-0 me-4 ms-2 text-white fw-bold" href="{{ url_for('inicio') }}">Biblioteca Rotario</a>
+
+            <!-- Botón del menú desplegable -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="menu">
+                <!-- Enlaces del menú -->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 list-unstyled">
+                    <li class="nav-item"><a href="{{ url_for('inicio') }}" class="nav-link text-white">Inicio</a></li>
+                    <li class="nav-item"><a href="{{ url_for('libros') }}" class="nav-link text-white">Libros</a></li>
+                    <li class="nav-item"><a href="{{ url_for('historial') }}" class="nav-link text-white">Historial</a></li>
+                    <li class="nav-item"><a href="{{ url_for('escaneo_libro') }}" class="nav-link text-white">Escanear</a></li>
+                    <li class="nav-item"><a href="{{ url_for('cuenta') }}" class="nav-link text-white">Cuenta</a></li>
+
+                    <li class="nav-item">
+                        {% if session.get('user_id') %}
+                        <form method="post" action="{{ url_for('logout') }}" class="d-inline">
+                            <button type="submit" class="nav-link text-white bg-transparent border-0">Cerrar Sesión</button>
+                        </form>
+                        {% else %}
+                        <a href="{{ url_for('signup') }}" class="nav-link text-white">Iniciar Sesión</a>
+                        {% endif %}
+                    </li>
+                </ul>
+
+                <!-- Buscador: envía la búsqueda a la página de Libros -->
+                <form class="d-flex" role="search" action="{{ url_for('libros') }}" method="get">
+                    <input class="form-control rounded-5 me-2" type="search" name="q" placeholder="Buscar.." aria-label="Buscar">
+                    <button class="btn btn-outline-secondary bg-white text-dark" type="submit">Buscar</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container bg-white p-3 rounded-3 shadow mt-4">
+        {% if nuevo %}
+        <div class="alert alert-success">Préstamo guardado correctamente.</div>
+        {% endif %}
+
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+          {% for categoria, mensaje in mensajes %}
+            <div class="alert alert-{{ categoria }}">{{ mensaje }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        {# Hay una copia prestada cuando esta ficha trae los datos de un préstamo #}
+        {% set prestado = libro.prestamo_id is not none %}
+        {% set p = plazo(libro.fecha_devolucion) if prestado else None %}
+        {% if p and p.dias < 0 %}
+        <div class="alert alert-danger">
+            <strong>Plazo vencido.</strong> La copia {{ libro.copia }} debía devolverse el {{ libro.fecha_devolucion|fecha }} ({{ p.texto|lower }}). Cuando la reciban, pulsa "Devolver copia {{ libro.copia }}".
+        </div>
+        {% elif p and p.dias == 0 %}
+        <div class="alert alert-warning">
+            <strong>Hoy es la fecha límite.</strong> La copia {{ libro.copia }} debe devolverse hoy. Cuando la reciban, pulsa "Devolver copia {{ libro.copia }}".
+        </div>
+        {% endif %}
+
+        <h4 class="text-center">Ficha de Resumen</h4>
+        <p><strong>Nombre del Libro:</strong> {{ libro.titulo }}</p>
+
+        {% if prestado %}
+        <p><strong>Copia / ejemplar:</strong> Copia {{ libro.copia }}{% if libro.cantidad %} de {{ libro.cantidad }}{% endif %}</p>
+        <p><strong>Prestado a:</strong> {{ libro.prestado_a or 'No registrado' }}</p>
+        <p><strong>Curso:</strong> {{ libro.curso or 'No registrado' }}</p>
+        <p><strong>Prestado el día:</strong> {{ (libro.fecha_prestamo|fecha) or 'No registrado' }}</p>
+        <p>
+            <strong>Fecha límite de devolución:</strong> {{ (libro.fecha_devolucion|fecha) or 'No registrada' }}
+            {% if p %}<span class="badge text-bg-{{ p.clase }} ms-2">{{ p.texto }}</span>{% endif %}
+        </p>
+        {% else %}
+        <div class="alert alert-info">Este libro ya fue devuelto y está disponible en la biblioteca.</div>
+        {% endif %}
+
+        <div class="d-flex flex-wrap justify-content-between gap-2 mt-3">
+            <a class="btn btn-outline-secondary rounded-4" href="{{ url_for('historial') }}">Volver al historial</a>
+
+            <div class="d-flex gap-2">
+                {% if prestado %}
+                <form method="post" action="{{ url_for('devolver') }}" onsubmit="return confirm('¿Confirmas que la copia {{ libro.copia }} fue devuelta?');">
+                    <input type="hidden" name="prestamo_id" value="{{ libro.prestamo_id }}">
+                    <input type="hidden" name="libro_id" value="{{ libro.id }}">
+                    <button type="submit" class="btn btn-danger rounded-4">Devolver copia {{ libro.copia }}</button>
+                </form>
+                {% endif %}
+                <a class="btn bg-primary text-white rounded-4" href="{{ url_for('escaneo_libro') }}">Continuar</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>

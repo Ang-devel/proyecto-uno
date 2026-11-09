@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información del libro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body class="d-flex flex-column bg-success-subtle">
+
+    <header>
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg bg-success border rounded-bottom-4 navbar-dark p-3">
+            <div class="container-fluid">
+
+                <img src="{{ url_for('static', filename='img/logoesc.png') }}" alt="logo escuela Rotario" style="height: 50px; width: auto;">
+                <a class="navbar-brand h3 mb-0 me-4 ms-2 text-white fw-bold" href="{{ url_for('inicio') }}">Biblioteca Rotario</a>
+
+                <!-- Botón del menú desplegable -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="menu">
+                    <!-- Enlaces del menú -->
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 list-unstyled">
+                        <li class="nav-item"><a href="{{ url_for('inicio') }}" class="nav-link text-white">Inicio</a></li>
+                        <li class="nav-item"><a href="{{ url_for('libros') }}" class="nav-link text-white">Libros</a></li>
+                        <li class="nav-item"><a href="{{ url_for('historial') }}" class="nav-link text-white">Historial</a></li>
+                        <li class="nav-item"><a href="{{ url_for('escaneo_libro') }}" class="nav-link text-white">Escanear</a></li>
+                        <li class="nav-item"><a href="{{ url_for('cuenta') }}" class="nav-link text-white">Cuenta</a></li>
+                        <li class="nav-item">
+                            {% if session.get('user_id') %}
+                            <form method="post" action="{{ url_for('logout') }}" class="d-inline">
+                                <button type="submit" class="nav-link text-white bg-transparent border-0">Cerrar Sesión</button>
+                            </form>
+                            {% else %}
+                            <a href="{{ url_for('signup') }}" class="nav-link text-white">Iniciar Sesión</a>
+                            {% endif %}
+                        </li>
+                    </ul>
+
+                    <!-- Buscador: lleva a la página de Libros con los resultados -->
+                    <form class="d-flex" role="search" method="get" action="{{ url_for('libros') }}">
+                        <input class="form-control rounded-5 me-2" type="search" name="q" placeholder="Buscar.." aria-label="Buscar">
+                        <button class="btn btn-outline-secondary bg-white text-dark" type="submit">Buscar</button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container my-4">
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+          {% for categoria, mensaje in mensajes %}
+            <div class="alert alert-{{ categoria }}">{{ mensaje }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        {% set cantidad = libro.cantidad or 1 %}
+
+        <div class="row g-4 align-items-start">
+            <section class="col-md-5 d-flex flex-column align-items-left text-center">
+                <div class="card" style="width: 18rem;">
+                    <img src="{{ url_for('static', filename='img/' ~ (libro.imagen or 'images.png')) }}" class="card-img-top" alt="Portada del libro">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ libro.titulo }}</h5>
+                        <p class="card-text">{{ libro.descripcion or 'Descripción no disponible' }}</p>
+
+                        {% if prestamos %}
+                        <span class="badge text-bg-warning fs-6 d-block mb-2">{{ prestamos|length }} de {{ cantidad }} copia{{ '' if cantidad == 1 else 's' }} prestada{{ '' if prestamos|length == 1 else 's' }}</span>
+                        {% endif %}
+
+                        {% if disponibles > 0 %}
+                        <a href="{{ url_for('prestamo', libro_id=libro.id) }}" class="btn btn-success">Préstamo</a>
+                        {% else %}
+                        <span class="text-muted d-block">No quedan copias disponibles</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="col-md-7">
+                <div class="p-3 bg-light rounded border shadow-sm">
+                    <h2 class="h4 border-bottom pb-2 mb-3">Información</h2>
+
+                    <ul class="list-unstyled lh-lg fs-5 mb-0">
+                        <li><strong>Título:</strong> <span id="libro-titulo">{{ libro.titulo }}</span></li>
+                        <li><strong>Autor:</strong> <span id="libro-autor">{{ libro.autor or 'No registrado' }}</span></li>
+                        <li><strong>Editorial:</strong> <span id="libro-editorial">{{ libro.editorial or 'No registrada' }}</span></li>
+                        <li><strong>Año:</strong> <span id="libro-anio">{{ libro.anio or 'No registrado' }}</span></li>
+                        <li><strong>Ubicación:</strong> <span id="libro-ubicacion">{{ libro.mueble or 'Sin ubicación' }}{% if libro.seccion %} · {{ libro.seccion }}{% endif %}</span></li>
+                        <li><strong>Estado:</strong> <span id="libro-estado">{{ libro.estado or 'No registrado' }}</span></li>
+                    </ul>
+                </div>
+
+                <!-- Solo aparece cuando hay al menos una copia prestada -->
+                {% if prestamos %}
+                <div class="p-3 bg-light rounded border shadow-sm mt-4">
+                    <h2 class="h4 border-bottom pb-2 mb-3">Ejemplares prestados</h2>
+
+                    {% for p in prestamos %}
+                    {% set pl = plazo(p.fecha_devolucion) %}
+                    <div class="border rounded-3 bg-white p-3 {{ 'mb-3' if not loop.last }}">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <strong class="fs-5">Copia {{ p.copia }}</strong>
+                            {% if pl %}<span class="badge text-bg-{{ pl.clase }}">{{ pl.texto }}</span>{% endif %}
+                        </div>
+
+                        <ul class="list-unstyled mb-2 mt-2">
+                            <li><strong>Prestado a:</strong> {{ p.prestado_a or 'No registrado' }}</li>
+                            <li><strong>Curso:</strong> {{ p.curso or 'No registrado' }}</li>
+                            <li><strong>Fecha de préstamo:</strong> {{ (p.fecha_prestamo|fecha) or 'No registrada' }}</li>
+                            <li><strong>Fecha de devolución:</strong> {{ (p.fecha_devolucion|fecha) or 'No registrada' }}</li>
+                        </ul>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ url_for('tarjeta_resumen', libro_id=libro.id, prestamo_id=p.id) }}" class="btn btn-sm btn-outline-success">Ver ficha del préstamo</a>
+                            <form method="post" action="{{ url_for('devolver') }}" class="m-0"
+                                  onsubmit="return confirm('¿Registrar la devolución de la copia {{ p.copia }}?');">
+                                <input type="hidden" name="prestamo_id" value="{{ p.id }}">
+                                <button type="submit" class="btn btn-sm btn-success">Devolver copia {{ p.copia }}</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('libros') }}" class="btn btn-outline-secondary rounded-4">Volver a libros</a>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>

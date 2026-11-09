@@ -1,0 +1,9 @@
+#ocultar archivo sensible
+.env
+
+#Ocultar base de datos local
+database.sql 
+
+.venv/
+__pycache__/
+*.pyc

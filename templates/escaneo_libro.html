@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escaneo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body style="background-image: url('https://img.magnific.com/premium-photo/books-isolated-pastel-purple-background-book-concept-minimal-style-3d-rendering-web-page_576429-1982.jpg'); background-repeat: no-repeat; background-size: cover; background-position: center;">
+    <header class="d-flex align-items-center p-3">
+        <a href="{{ url_for('inicio') }}">
+            <img src="{{ url_for('static', filename='img/logoesc.png') }}" alt="logo escuela Rotario" class="me-3" style="height: 50px; width: auto;">
+        </a>
+        <h1 class="text-center">Biblioteca Rotario</h1>
+
+        <!-- El lector de códigos de barras escribe el código aquí y envía con Enter -->
+        <form class="d-flex w-25 ms-auto" role="search" method="get" action="{{ url_for('escaneo_libro') }}">
+            <input class="form-control me-2" type="search" name="codigo" value="{{ codigo }}" placeholder="Escanea el código de barras..." aria-label="Código de barras" autofocus autocomplete="off">
+            <button type="submit" class="btn btn-outline-success">Buscar</button>
+        </form>
+    </header>
+
+    <main class="container my-4">
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+          {% for categoria, mensaje in mensajes %}
+            <div class="alert alert-{{ categoria }}">{{ mensaje }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        {% if hubo_error %}
+        <div class="alert alert-danger">No se pudo consultar la base de datos. Intenta de nuevo.</div>
+        {% endif %}
+
+        {% if libro %}
+        <!-- ============ LIBRO ESCANEADO ============ -->
+        <div class="row g-4 align-items-center">
+            <section class="col-md-5 d-flex flex-column align-items-left text-center">
+                <div class="card" style="width: 18rem;">
+                    <img src="{{ url_for('static', filename='img/' ~ (libro.imagen or 'images.png')) }}" class="card-img-top" alt="Portada del libro">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ libro.titulo }}</h5>
+                        <p class="card-text">{{ libro.descripcion or "Descripción no disponible" }}</p>
+                        {% if libro.estado == 'Prestado' %}
+                        <span class="badge text-bg-warning fs-6">Prestado</span>
+                        {% else %}
+                        <a href="{{ url_for('prestamo', libro_id=libro.id) }}" class="btn btn-success">Préstamo</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="col-md-7">
+                <div class="p-3 bg-light rounded border shadow-sm">
+                    <h2 class="h4 border-bottom pb-2 mb-3">Información</h2>
+
+                    <ul class="list-unstyled lh-lg fs-5">
+                        <li><strong>Título:</strong> <span id="libro-titulo">{{ libro.titulo }}</span></li>
+                        <li><strong>Autor:</strong> <span id="libro-autor">{{ libro.autor or 'No registrado' }}</span></li>
+                        <li><strong>Año:</strong> <span id="libro-anio">{{ libro.anio or 'No registrado' }}</span></li>
+                        <li><strong>Estado:</strong> <span id="libro-estado">{{ libro.estado or 'No registrado' }}</span></li>
+                        <li><strong>Prestado a:</strong> <span id="libro-prestado-a">{{ libro.prestado_a or '' }}</span></li>
+                        <li><strong>Curso:</strong> <span id="libro-curso">{{ libro.curso or '' }}</span></li>
+                        <li><strong>Fecha de devolución:</strong> <span id="libro-fecha-devolucion">{{ libro.fecha_devolucion or '' }}</span></li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+        {% else %}
+        <!-- ============ AÚN NO SE HA ESCANEADO NADA ============ -->
+        <div class="row justify-content-center">
+            <section class="col-md-8 col-lg-6">
+                <div class="p-5 bg-light rounded border shadow-sm text-center">
+                    {% if no_encontrado %}
+                    <h2 class="h4 mb-3">Libro no encontrado</h2>
+                    <p class="fs-5 mb-0">No hay ningún libro con el código <strong>{{ codigo }}</strong>. Prueba escaneando de nuevo.</p>
+                    {% else %}
+                    <h2 class="h4 mb-3">Escanea un libro</h2>
+                    <p class="fs-5 mb-0">Escanea el código de barras del libro para ver su información.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+        {% endif %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>
