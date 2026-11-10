@@ -26,6 +26,7 @@
                     <li class="nav-item"><a href="{{url_for ('inicio')}}" class="nav-link text-white">Inicio</a></li>
                     <li class="nav-item"><a href="{{url_for ('libros')}}" class="nav-link text-white">Libros</a></li>
                     <li class="nav-item"><a href="{{url_for ('historial') }}" class="nav-link text-white">Historial</a></li>
+                    <li class="nav-item"><a href="{{url_for ('escaneo_libro') }}" class="nav-link text-white">Escanear</a></li>
                     <li class="nav-item"><a href="{{url_for ('cuenta') }}" class="nav-link text-white">Cuenta</a></li>
                     <li class="nav-item">
                         {% if session.get('user_id') %}
