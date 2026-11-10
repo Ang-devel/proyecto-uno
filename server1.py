@@ -350,7 +350,7 @@ def info():
 
         cantidad = libro.get("cantidad") or 1
         return render_template(
-            "Infolibro.html",
+            "InfoLibro.html",
             libro=libro, prestamos=prestamos,
             disponibles=max(0, cantidad - len(prestamos)),
         )
